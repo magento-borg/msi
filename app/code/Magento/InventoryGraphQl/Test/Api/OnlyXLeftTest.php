@@ -32,12 +32,24 @@ class OnlyXLeftTest extends GraphQlAbstract
     protected function setUp()
     {
         $this->objectManager = Bootstrap::getObjectManager();
+        $preparedValueFactory = $this->objectManager->get(\Magento\Config\Model\PreparedValueFactory::class);
+        $resource = $this->objectManager->get(\Magento\Config\Model\ResourceModel\Config\Data::class);
+        $value = $preparedValueFactory->create(
+            'cataloginventory/options/stock_threshold_qty',
+            99,
+            'default',
+            0
+        );
+        $resource->save($value);
+        $reinitableConfig = $this->objectManager->create(
+            \Magento\Framework\App\Config\ReinitableConfigInterface::class
+        );
+        $reinitableConfig->reinit();
     }
 
     /**
      * Verify "Only x left" after order placement on default stock, main website.
      *
-     * @magentoConfigFixture default_store cataloginventory/options/stock_threshold_qty 99
      * @magentoApiDataFixture Magento/Checkout/_files/simple_product.php
      * @magentoApiDataFixture ../../../../app/code/Magento/InventoryShipping/Test/_files/source_items_for_simple_on_default_source.php
      * @magentoApiDataFixture ../../../../app/code/Magento/InventoryShipping/Test/_files/create_quote_on_default_website.php
@@ -67,7 +79,6 @@ QUERY;
     /**
      * Verify "Only x left" after order placement on default stock, additional website.
      *
-     * @magentoConfigFixture store_for_eu_website_store cataloginventory/options/stock_threshold_qty 99
      * @magentoApiDataFixture Magento/Checkout/_files/simple_product.php
      * @magentoApiDataFixture ../../../../app/code/Magento/InventorySalesApi/Test/_files/websites_with_stores.php
      * @magentoApiDataFixture ../../../../app/code/Magento/InventoryShipping/Test/_files/source_items_for_simple_on_default_source.php
@@ -100,7 +111,6 @@ QUERY;
     /**
      * Verify "Only x left" after order placement on additional stock, main website.
      *
-     * @magentoConfigFixture default_store cataloginventory/options/stock_threshold_qty 99
      * @magentoApiDataFixture Magento/Checkout/_files/simple_product.php
      * @magentoApiDataFixture ../../../../app/code/Magento/InventoryApi/Test/_files/sources.php
      * @magentoApiDataFixture ../../../../app/code/Magento/InventoryApi/Test/_files/stocks.php
@@ -134,7 +144,6 @@ QUERY;
     /**
      * Verify "Only x left" after order placement on additional stock, additional website.
      *
-     * @magentoConfigFixture default_store cataloginventory/options/stock_threshold_qty 99
      * @magentoApiDataFixture ../../../../app/code/Magento/InventorySalesApi/Test/_files/websites_with_stores.php
      * @magentoApiDataFixture Magento/Checkout/_files/simple_product.php
      * @magentoApiDataFixture ../../../../app/code/Magento/InventoryApi/Test/_files/sources.php
@@ -207,5 +216,14 @@ QUERY;
 
         $extensionAttributes->setSalesChannels($salesChannels);
         $stockRepository->save($stock);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function tearDown()
+    {
+        $resource = $this->objectManager->get(\Magento\Config\Model\ResourceModel\Config\Data::class);
+        $resource->clearScopeData('default', 0);
     }
 }
